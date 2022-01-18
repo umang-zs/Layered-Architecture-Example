@@ -9,6 +9,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var db *sql.DB
+var err error
+
 type customer struct {
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
@@ -16,10 +19,8 @@ type customer struct {
 	Address string `json:"address"`
 }
 
-var db *sql.DB
-var err error
-
 func main() {
+
 	db, err = sql.Open("mysql", "root:secret123@tcp(127.0.0.1:3306)/customer")
 	if err != nil {
 		log.Println(err.Error())
@@ -28,8 +29,10 @@ func main() {
 	defer db.Close()
 
 	router := mux.NewRouter()
-	router.HandleFunc("/posts", getCustomers).Methods(http.MethodGet)
-	router.HandleFunc("/posts/{name}", getCustomer).Methods(http.MethodGet)
-	router.HandleFunc("/createPost", createPost).Methods(http.MethodPost)
+	router.HandleFunc("/customer", getCustomers).Methods(http.MethodGet)
+	router.HandleFunc("/customer/{name}", getCustomer).Methods(http.MethodGet)
+	router.HandleFunc("/customer", createCustomer).Methods(http.MethodPost)
+	router.HandleFunc("/customer/{id}", updateCustomer).Methods(http.MethodPut)
+	router.HandleFunc("/customer/{id}", deleteCustomer).Methods(http.MethodDelete)
 	http.ListenAndServe(":8000", router)
 }
