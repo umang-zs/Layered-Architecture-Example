@@ -49,6 +49,14 @@ func getCustomer(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 	}
 
+	defer func() {
+		err := rows.Err()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}()
+
 	defer rows.Close()
 
 	for rows.Next() {
@@ -79,7 +87,6 @@ func createCustomer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	feedData, err := db.Prepare("INSERT INTO customers (ID,Name,phoneNo,Address) VALUES( ?, ?, ?, ? )")
-
 	if err != nil {
 		log.Println(err)
 	}
@@ -93,6 +100,7 @@ func createCustomer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var c customer
+
 	err = json.Unmarshal(body, &c)
 	if err != nil {
 		log.Println(err.Error())
