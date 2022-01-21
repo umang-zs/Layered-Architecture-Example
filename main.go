@@ -5,34 +5,39 @@ import (
 	"net/http"
 
 	"database/sql"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+
+	"github.com/umang01-hash/layered-architecture/driver"
+	handler "github.com/umang01-hash/layered-architecture/handlers/customer"
+	"github.com/umang01-hash/layered-architecture/store"
 )
-
-var db *sql.DB
-var err error
-
-type customer struct {
-	ID      int    `json:"id"`
-	Name    string `json:"name"`
-	PhoneNo string `json:"phone"`
-	Address string `json:"address"`
-}
 
 func main() {
 
-	db, err = sql.Open("mysql", "root:secret123@tcp(127.0.0.1:3306)/customer")
-	if err != nil {
-		log.Println(err.Error())
+	db := driver.ConnectToMySQL()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			return
+		}
+	}(db)
+
+	stores := store.New(db)
+	h := handler.New(stores)
+
+	r := mux.NewRouter()
+
+	r.HandleFunc("/customers/{id}", h.GetByID).Methods(http.MethodGet)
+	r.HandleFunc("/customers", h.Create).Methods(http.MethodPost)
+	r.HandleFunc("/customers/{id}", h.DeleteByID).Methods(http.MethodDelete)
+	r.HandleFunc("/customers/{id}", h.UpdateByID).Methods(http.MethodPut)
+
+	srv := &http.Server{
+		Handler: r,
+		Addr:    "127.0.0.1:8000",
 	}
 
-	defer db.Close()
-
-	router := mux.NewRouter()
-	router.HandleFunc("/customer", getCustomers).Methods(http.MethodGet)
-	router.HandleFunc("/customer/{name}", getCustomer).Methods(http.MethodGet)
-	router.HandleFunc("/customer", createCustomer).Methods(http.MethodPost)
-	router.HandleFunc("/customer/{id}", updateCustomer).Methods(http.MethodPut)
-	router.HandleFunc("/customer/{id}", deleteCustomer).Methods(http.MethodDelete)
-	http.ListenAndServe(":8000", router)
+	log.Fatalln(srv.ListenAndServe())
 }
